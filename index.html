@@ -257,6 +257,11 @@
     }
 
     async function init() {
+      // DEBUG — remove after fix
+      console.log('FULL URL:', window.location.href);
+      console.log('SEARCH:', window.location.search);
+      console.log('HASH:', window.location.hash);
+
       const queryParams = new URLSearchParams(window.location.search);
       const token_hash = queryParams.get('token_hash');
       const type       = queryParams.get('type');
