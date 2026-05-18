@@ -240,20 +240,31 @@
     }
 
     async function init() {
-      // Supabase puts tokens in the URL hash after redirect
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
+      // PKCE flow: ?code= query param (supabase-flutter default)
+      const queryParams = new URLSearchParams(window.location.search);
+      const code = queryParams.get('code');
 
-      const access_token  = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
-      const type          = params.get('type');
+      if (code) {
+        const { error } = await client.auth.exchangeCodeForSession(code);
+        if (error) {
+          showView('invalid-view');
+          return;
+        }
+        showView('form-view');
+        return;
+      }
+
+      // Implicit flow fallback: #access_token= hash fragment
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const access_token  = hashParams.get('access_token');
+      const refresh_token = hashParams.get('refresh_token');
+      const type          = hashParams.get('type');
 
       if (!access_token || type !== 'recovery') {
         showView('invalid-view');
         return;
       }
 
-      // Establish the session with the recovery tokens
       const { error } = await client.auth.setSession({ access_token, refresh_token });
       if (error) {
         showView('invalid-view');
