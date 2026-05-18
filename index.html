@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Şifre Sıfırla – FoodViewer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 36px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: #2e7d32;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+    }
+
+    .input-wrap {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 13px 44px 13px 14px;
+      border: 1.5px solid #ddd;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+      color: #1a1a1a;
+      background: #fafafa;
+    }
+
+    input:focus {
+      border-color: #2e7d32;
+      background: #fff;
+    }
+
+    .toggle-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      color: #999;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .toggle-btn:hover { color: #555; }
+
+    .hint {
+      font-size: 12px;
+      color: #888;
+      margin-top: -10px;
+      margin-bottom: 16px;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 14px;
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      margin-top: 8px;
+    }
+
+    button[type="submit"]:hover { background: #1b5e20; }
+    button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .msg {
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .msg.success {
+      background: #e8f5e9;
+      color: #1b5e20;
+      border: 1px solid #a5d6a7;
+    }
+
+    .msg.error {
+      background: #ffebee;
+      color: #b71c1c;
+      border: 1px solid #ef9a9a;
+    }
+
+    .msg.show { display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* invalid link state */
+    #invalid-view { display: none; text-align: center; }
+    #invalid-view .icon { font-size: 48px; margin-bottom: 16px; }
+    #invalid-view p { color: #666; font-size: 14px; line-height: 1.6; }
+
+    #success-view { display: none; text-align: center; }
+    #success-view .icon { font-size: 48px; margin-bottom: 16px; }
+    #success-view p { color: #555; font-size: 14px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">FoodViewer</div>
+
+    <!-- Form view -->
+    <div id="form-view">
+      <h1>Yeni Şifre Belirle</h1>
+      <p class="subtitle">Lütfen hesabınız için yeni bir şifre girin.</p>
+
+      <form id="reset-form">
+        <div class="input-wrap">
+          <label for="new-password">Yeni Şifre</label>
+          <div class="input-wrap">
+            <input type="password" id="new-password" placeholder="En az 6 karakter" required />
+            <button type="button" class="toggle-btn" onclick="toggleVisibility('new-password', this)">👁</button>
+          </div>
+        </div>
+
+        <div class="input-wrap">
+          <label for="confirm-password">Şifre Tekrarı</label>
+          <div class="input-wrap">
+            <input type="password" id="confirm-password" placeholder="Şifreyi tekrar girin" required />
+            <button type="button" class="toggle-btn" onclick="toggleVisibility('confirm-password', this)">👁</button>
+          </div>
+        </div>
+
+        <p class="hint">Şifreniz en az 6 karakter olmalıdır.</p>
+
+        <button type="submit" id="submit-btn">Şifremi Güncelle</button>
+      </form>
+
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <!-- Invalid / expired link -->
+    <div id="invalid-view">
+      <div class="icon">⚠️</div>
+      <h1>Geçersiz Bağlantı</h1>
+      <p>Bu şifre sıfırlama bağlantısı geçersiz ya da süresi dolmuş.<br><br>Lütfen uygulamadan tekrar "Şifremi unuttum" isteği gönderin.</p>
+    </div>
+
+    <!-- Success final view -->
+    <div id="success-view">
+      <div class="icon">✅</div>
+      <h1>Şifreniz Güncellendi</h1>
+      <p>Yeni şifrenizle FoodViewer uygulamasından giriş yapabilirsiniz.</p>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL  = 'https://pitsbmrphhjdaxzkwwku.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBpdHNibXJwaGhqZGF4emt3d2t1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0OTU3NDYsImV4cCI6MjA4NTg1NTc0Nn0.ZgSjWDE-AvY8GCympK3KfCvww45lNICt2dtH5C7I58I';
+
+    const { createClient } = supabase;
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    function showView(id) {
+      ['form-view', 'invalid-view', 'success-view'].forEach(v => {
+        document.getElementById(v).style.display = v === id ? 'block' : 'none';
+      });
+    }
+
+    function showMsg(text, type) {
+      const el = document.getElementById('msg');
+      el.textContent = text;
+      el.className = 'msg show ' + type;
+    }
+
+    function toggleVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      btn.textContent = isHidden ? '🙈' : '👁';
+    }
+
+    async function init() {
+      // Supabase puts tokens in the URL hash after redirect
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+
+      const access_token  = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      const type          = params.get('type');
+
+      if (!access_token || type !== 'recovery') {
+        showView('invalid-view');
+        return;
+      }
+
+      // Establish the session with the recovery tokens
+      const { error } = await client.auth.setSession({ access_token, refresh_token });
+      if (error) {
+        showView('invalid-view');
+        return;
+      }
+
+      showView('form-view');
+    }
+
+    document.getElementById('reset-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const newPw  = document.getElementById('new-password').value;
+      const confPw = document.getElementById('confirm-password').value;
+
+      if (newPw.length < 6) {
+        showMsg('Şifreniz en az 6 karakter olmalıdır.', 'error');
+        return;
+      }
+      if (newPw !== confPw) {
+        showMsg('Şifreler eşleşmiyor.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Güncelleniyor...';
+
+      const { error } = await client.auth.updateUser({ password: newPw });
+
+      if (error) {
+        showMsg('Hata: ' + error.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Şifremi Güncelle';
+      } else {
+        showView('success-view');
+        await client.auth.signOut();
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
